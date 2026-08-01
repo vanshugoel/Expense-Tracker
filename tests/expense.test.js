@@ -111,7 +111,45 @@ test("GET /expenses/total returns total amount", async () => {
 
 });
 
-test("DELETE /expenses/:id deletes an expense", async () => {
+test("GET /expenses/monthly-summary returns correct monthly summary", async () => {
+
+    await request(app)
+        .post("/expenses")
+        .send({
+            title: "Pizza",
+            amount: 300,
+            category: "Food",
+            date: "2026-08-01"
+        });
+
+    await request(app)
+        .post("/expenses")
+        .send({
+            title: "Burger",
+            amount: 200,
+            category: "Food",
+            date: "2026-08-15"
+        });
+
+    await request(app)
+        .post("/expenses")
+        .send({
+            title: "Uber",
+            amount: 150,
+            category: "Travel",
+            date: "2026-09-01"
+        });
+
+    const res = await request(app).get("/expenses/monthly-summary?month=2026-08");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.month).toBe("2026-08");
+    expect(res.body.total).toBe(500);
+    expect(res.body.count).toBe(2);
+
+});
+
+test("DELETE /expenses/:id deletes an expense and returns 404 if it does not exist", async () => {
 
     const create = await request(app)
         .post("/expenses")
@@ -124,9 +162,16 @@ test("DELETE /expenses/:id deletes an expense", async () => {
 
     const id = create.body.id;
 
-    const del = await request(app)
-        .delete(`/expenses/${id}`);
+    const del = await request(app).delete(`/expenses/${id}`);
 
     expect(del.statusCode).toBe(200);
+    expect(del.body.message).toBe("Expense deleted successfully");
+
+    const delAgain = await request(app)
+        .delete(`/expenses/${id}`);
+
+    expect(delAgain.statusCode).toBe(404);
+    expect(delAgain.body.message).toBe("Expense not found");
 
 });
+
